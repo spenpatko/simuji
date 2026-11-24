@@ -203,7 +203,7 @@
       }
       @page {
         size: A4 portrait;
-        margin: 12mm;
+        margin: 8mm;
       }
     }
   </style>
@@ -225,7 +225,6 @@
     // =========================================================================
     const IS_PREVIEW = false; // Ubah menjadi false SAAT DEPLOY / PUBLISH agar terhubung murni ke Firebase tanpa data dummy
 
-    // PASTE FIREBASE CONFIG ANDA DI SINI
     const firebaseConfig = {
 		apiKey: "AIzaSyCpX5s-X1IrWyZKyd94N0TRwGOah2mnY9M",
 		authDomain: "simuji-8afa4.firebaseapp.com",
@@ -485,6 +484,13 @@
       cetakFilterBapId: "",
       mobileDrawerOpen: false,
 
+      // Pengaturan Ukuran Kartu Peserta (Panjang & Lebar Kustom dalam mm)
+      kartuConfig: {
+        lebarMm: 92,
+        panjangMm: 60,
+        jarakMm: 3
+      },
+
       // 3 Filter Dropdown Utama (Jenis Penilaian, Semester, Tahun Pelajaran)
       filter: {
         jenis_penilaian: IS_PREVIEW ? "Sumatif Akhir Semester (SAS)" : DEFAULT_JENIS_LIST[1],
@@ -643,6 +649,20 @@
       return state.currentUser && state.currentUser.role === "admin";
     }
 
+    function calculateA4Capacity(lebarMm, panjangMm, jarakMm) {
+      // Kertas A4 (210 x 297 mm) dengan margin 8mm -> area cetak efektif 194 x 281 mm
+      const w = Math.max(40, Number(lebarMm) || 92);
+      const h = Math.max(30, Number(panjangMm) || 60);
+      const g = Math.max(0, Number(jarakMm) || 0);
+      const cols = Math.max(1, Math.floor((194 + g) / (w + g)));
+      const rows = Math.max(1, Math.floor((281 + g) / (h + g)));
+      return {
+        cols,
+        rows,
+        total: cols * rows
+      };
+    }
+
     // =========================================================================
     // 7. SINKRONISASI REAL-TIME FIRESTORE (SAAT IS_PREVIEW === false)
     // =========================================================================
@@ -751,7 +771,7 @@
           state.currentUser = {
             role: "admin",
             id: user.uid,
-            name: user.displayName || "Administrator",
+            name: user.displayName || "Admin Panitia Utama",
             emailOrUsername: user.email,
             nip: "Administrator"
           };
@@ -849,7 +869,7 @@
         state.currentUser = {
           role: "admin",
           id: cred.user.uid,
-          name: cred.user.displayName || "Administrator",
+          name: cred.user.displayName || "Admin Panitia Utama",
           emailOrUsername: cred.user.email,
           nip: "Administrator"
         };
@@ -1043,7 +1063,7 @@
                 }
               </div>
               <h1 class="font-display font-extrabold text-xl sm:text-2xl text-slate-900 tracking-tight">${escapeHtml(sekolahNama)}</h1>
-              <p class="text-slate-500 text-xs sm:text-sm mt-1">Sistem Informasi Manajemen Ujian</p>
+              <p class="text-slate-500 text-xs sm:text-sm mt-1">Sistem Manajemen Panitia & Pengawas Ujian</p>
             </div>
 
             <!-- Tab Pemilih Jalur Login Hybrid -->
@@ -1051,7 +1071,7 @@
               <button type="button" data-login-tab="admin"
                 class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 ${state.loginTab === 'admin' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">
                 <i data-lucide="shield-check" class="w-4 h-4 shrink-0"></i>
-                <span>Admin</span>
+                <span>Admin Utama</span>
               </button>
               <button type="button" data-login-tab="panitia"
                 class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 ${state.loginTab === 'panitia' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">
@@ -1064,7 +1084,7 @@
               <!-- Form Login Admin (Firebase Auth) -->
               <form id="form-login-admin" class="space-y-4">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Username</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Email Admin</label>
                   <div class="relative">
                     <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
                     <input type="email" id="login-admin-email" required placeholder="admin@sekolah.sch.id"
@@ -1073,7 +1093,7 @@
                   </div>
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Kata Sandi</label>
                   <div class="relative">
                     <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
                     <input type="${pwdType}" id="login-admin-password" required placeholder="••••••••"
@@ -1105,7 +1125,7 @@
               <!-- Form Login Panitia / Pengawas (Validasi Firestore users_panitia) -->
               <form id="form-login-panitia" class="space-y-4">
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Username</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Username / ID Petugas</label>
                   <div class="relative">
                     <i data-lucide="user-check" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
                     <input type="text" id="login-panitia-username" required placeholder="Contoh: panitia01"
@@ -1114,7 +1134,7 @@
                   </div>
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1.5">Password Petugas</label>
                   <div class="relative">
                     <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
                     <input type="${pwdType}" id="login-panitia-password" required placeholder="••••••••"
@@ -1153,7 +1173,7 @@
     // =========================================================================
     function getAvailableMenus() {
       const menus = [
-        { id: "dashboard", label: "Dashboard", shortLabel: "Beranda", icon: "layout-dashboard", group: "OPERASIONAL UJIAN" },
+        { id: "dashboard", label: "Dashboard Komando", shortLabel: "Beranda", icon: "layout-dashboard", group: "OPERASIONAL UJIAN" },
         { id: "master", label: "Master & Profil", shortLabel: "Master", icon: "database", group: "OPERASIONAL UJIAN" },
         { id: "jadwal", label: "Jadwal & Pengawas", shortLabel: "Jadwal", icon: "calendar-clock", group: "OPERASIONAL UJIAN" },
         { id: "monitoring", label: "Monitoring Ruang", shortLabel: "Ruang", icon: "monitor-check", group: "PELAKSANAAN" },
@@ -1357,7 +1377,7 @@
 
             <!-- 3 Dropdown Utama: Proporsional di HP (2 baris ringkas), Tablet & Desktop (3 kolom sejajar) -->
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <!-- 1. Dropdown Jenis Penilaian (Full width di HP, 1 kolom di Tablet/Desktop) -->
+              <!-- 1. Dropdown Jenis Penilaian -->
               <div class="col-span-2 sm:col-span-1">
                 <label for="global-jenis-penilaian" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">1. Jenis Penilaian</label>
                 <select id="global-jenis-penilaian"
@@ -1427,7 +1447,7 @@
                   <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
                   <span>${escapeHtml(state.filter.jenis_penilaian)} • Sem. ${escapeHtml(state.filter.semester)} (${escapeHtml(state.filter.tahun_pelajaran)})</span>
                 </div>
-                <h2 class="font-display font-extrabold text-xl sm:text-2xl tracking-tight">Dashboard Panitia Ujian</h2>
+                <h2 class="font-display font-extrabold text-xl sm:text-2xl tracking-tight">Dashboard Komando Panitia Ujian</h2>
                 <p class="text-teal-50 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
                   Pantau kesiapan ruang, distribusi peserta, jadwal pengawas, dan laporan berita acara secara real-time.
                 </p>
@@ -2142,7 +2162,7 @@
     }
 
     // =========================================================================
-    // 19. MODUL 6: PUSAT CETAK DOKUMEN PANITIA (KOP & LOGO SEKOLAH + FOTO KARTU)
+    // 19. MODUL 6: PUSAT CETAK DOKUMEN PANITIA (KOP & LOGO + KARTU UKURAN KUSTOM)
     // =========================================================================
     function renderKopSuratHtml(judulDokumen) {
       const s = state.pengaturan_sekolah || {};
@@ -2173,6 +2193,8 @@
     function renderCetakView() {
       const ruangList = filterByActivePeriod(state.ruang_ujian);
       const bapList = filterByActivePeriod(state.berita_acara);
+      const { lebarMm, panjangMm, jarakMm } = state.kartuConfig;
+      const a4Est = calculateA4Capacity(lebarMm, panjangMm, jarakMm);
 
       const docTabs = [
         { id: "kartu", label: "Kartu Peserta Ujian", icon: "id-card" },
@@ -2180,6 +2202,13 @@
         { id: "denah", label: "Denah Tempat Duduk", icon: "layout-grid" },
         { id: "jadwal", label: "Jadwal Mengawas", icon: "calendar" },
         { id: "bap", label: "Berita Acara (BAP)", icon: "file-check" }
+      ];
+
+      const cardPresets = [
+        { label: "ID Card (85×54 mm)", w: 85, h: 54, g: 3 },
+        { label: "Hemat (92×60 mm)", w: 92, h: 60, g: 3 },
+        { label: "Standar (95×68 mm)", w: 95, h: 68, g: 3 },
+        { label: "Besar (100×75 mm)", w: 100, h: 75, g: 4 }
       ];
 
       return `
@@ -2213,14 +2242,63 @@
             </div>
 
             ${["kartu", "hadir", "denah"].includes(state.cetakDocType) ? `
-              <div class="max-w-xs">
-                <label class="block text-[11px] font-bold text-slate-600 mb-1">Filter Ruang Ujian:</label>
-                <select id="cetak-filter-ruang" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold">
-                  <option value="ALL" ${state.cetakFilterRuang === "ALL" ? "selected" : ""}>Semua Ruang Ujian</option>
-                  ${ruangList.map((r) => `
-                    <option value="${r.id}" ${state.cetakFilterRuang === r.id ? "selected" : ""}>${escapeHtml(r.kode_ruang)} - ${escapeHtml(r.nama_ruang)}</option>
-                  `).join("")}
-                </select>
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-end pt-1">
+                <div class="${state.cetakDocType === 'kartu' ? 'lg:col-span-4' : 'lg:col-span-4'}">
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Filter Ruang Ujian:</label>
+                  <select id="cetak-filter-ruang" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold">
+                    <option value="ALL" ${state.cetakFilterRuang === "ALL" ? "selected" : ""}>Semua Ruang Ujian</option>
+                    ${ruangList.map((r) => `
+                      <option value="${r.id}" ${state.cetakFilterRuang === r.id ? "selected" : ""}>${escapeHtml(r.kode_ruang)} - ${escapeHtml(r.nama_ruang)}</option>
+                    `).join("")}
+                  </select>
+                </div>
+
+                ${state.cetakDocType === "kartu" ? `
+                  <!-- Pengaturan Panjang & Lebar Kartu Peserta (Hemat Kertas) -->
+                  <div class="lg:col-span-8 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200/80 space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div class="flex items-center gap-1.5 text-xs font-bold text-teal-900">
+                        <i data-lucide="scaling" class="w-4 h-4 text-teal-600"></i>
+                        <span>Atur Panjang & Lebar Kartu (Hemat Kertas)</span>
+                      </div>
+                      <span id="kartu-a4-estimate" class="px-2.5 py-0.5 rounded-full bg-teal-600 text-white text-[11px] font-bold">
+                        Estimasi: ${a4Est.total} kartu / lembar A4 (${a4Est.cols}×${a4Est.rows})
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5">
+                      <div>
+                        <label for="kartu-lebar-mm" class="block text-[10px] font-bold uppercase text-slate-600 mb-0.5">Lebar (mm)</label>
+                        <input type="number" id="kartu-lebar-mm" min="45" max="194" step="1" value="${escapeHtml(lebarMm)}"
+                          class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none" />
+                      </div>
+                      <div>
+                        <label for="kartu-panjang-mm" class="block text-[10px] font-bold uppercase text-slate-600 mb-0.5">Panjang / Tinggi (mm)</label>
+                        <input type="number" id="kartu-panjang-mm" min="35" max="280" step="1" value="${escapeHtml(panjangMm)}"
+                          class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none" />
+                      </div>
+                      <div>
+                        <label for="kartu-jarak-mm" class="block text-[10px] font-bold uppercase text-slate-600 mb-0.5">Jarak Potong (mm)</label>
+                        <input type="number" id="kartu-jarak-mm" min="0" max="20" step="1" value="${escapeHtml(jarakMm)}"
+                          class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 outline-none" />
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span class="text-[10px] font-semibold text-slate-500 mr-1">Ukuran Cepat:</span>
+                      ${cardPresets.map((pr) => `
+                        <button type="button" data-kartu-preset-w="${pr.w}" data-kartu-preset-h="${pr.h}" data-kartu-preset-g="${pr.g}"
+                          class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${
+                            Number(lebarMm) === pr.w && Number(panjangMm) === pr.h
+                              ? "bg-teal-600 text-white border-teal-600"
+                              : "bg-white text-slate-700 border-slate-200 hover:border-teal-400"
+                          }">
+                          ${escapeHtml(pr.label)}
+                        </button>
+                      `).join("")}
+                    </div>
+                  </div>
+                ` : ""}
               </div>
             ` : ""}
 
@@ -2266,47 +2344,71 @@
         if (filteredPeserta.length === 0) {
           return `<div class="text-center py-12 text-sm text-slate-500">Tidak ada data peserta untuk dicetak pada filter ruang ini.</div>`;
         }
+
+        const w = Math.max(45, Math.min(194, Number(state.kartuConfig.lebarMm) || 92));
+        const h = Math.max(35, Math.min(280, Number(state.kartuConfig.panjangMm) || 60));
+        const gap = Math.max(0, Math.min(20, Number(state.kartuConfig.jarakMm) ?? 3));
+
+        // Skala proporsional elemen internal kartu agar rapi untuk ukuran hemat maupun besar
+        const isCompact = w < 88 || h < 58;
+        const isLarge = w >= 100 && h >= 72;
+
+        const padCss = isCompact ? "2mm 2.5mm" : isLarge ? "3.5mm 4mm" : "2.5mm 3.2mm";
+        const logoBoxCss = isCompact ? "width: 7mm; height: 7mm;" : isLarge ? "width: 10mm; height: 10mm;" : "width: 8.5mm; height: 8.5mm;";
+        const titleSchoolCss = isCompact ? "font-size: 8.5px;" : isLarge ? "font-size: 11px;" : "font-size: 9.5px;";
+        const titleCardCss = isCompact ? "font-size: 8px;" : isLarge ? "font-size: 10px;" : "font-size: 9px;";
+        const subPeriodeCss = isCompact ? "font-size: 6.5px;" : isLarge ? "font-size: 8.5px;" : "font-size: 7.5px;";
+        const fotoBoxCss = isCompact ? "width: 13mm; height: 17mm;" : isLarge ? "width: 19mm; height: 24mm;" : "width: 15.5mm; height: 20mm;";
+        const tableFontCss = isCompact ? "font-size: 7.5px; line-height: 1.25;" : isLarge ? "font-size: 9.5px; line-height: 1.35;" : "font-size: 8.5px; line-height: 1.3;";
+        const labelColCss = isCompact ? "width: 15mm;" : isLarge ? "width: 21mm;" : "width: 18mm;";
+        const footerFontCss = isCompact ? "font-size: 6.5px; line-height: 1.2;" : isLarge ? "font-size: 8.5px; line-height: 1.3;" : "font-size: 7.5px; line-height: 1.25;";
+        const signSpaceCss = isCompact ? "margin-top: 3mm;" : isLarge ? "margin-top: 7mm;" : "margin-top: 4.5mm;";
+
         return `
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div style="display: flex; flex-wrap: wrap; align-content: flex-start; gap: ${gap}mm;">
             ${filteredPeserta.map((p) => {
               const ruang = getRuangById(p.ruang_id);
               return `
-                <div class="border-2 border-slate-800 rounded-xl p-3.5 bg-white avoid-break flex flex-col justify-between">
-                  <div class="flex items-center gap-2.5 pb-2 mb-2.5 border-b border-slate-400">
-                    <div class="w-10 h-10 shrink-0 flex items-center justify-center">
+                <div class="border border-slate-800 rounded-lg bg-white avoid-break flex flex-col justify-between overflow-hidden"
+                  style="width: ${w}mm; height: ${h}mm; padding: ${padCss}; box-sizing: border-box;">
+                  <!-- Kop Kartu -->
+                  <div class="flex items-center gap-2 pb-1 border-b border-slate-400">
+                    <div class="shrink-0 flex items-center justify-center" style="${logoBoxCss}">
                       ${s.logo_sekolah
                         ? `<img src="${s.logo_sekolah}" alt="Logo" class="w-full h-full object-contain" />`
-                        : `<div class="w-9 h-9 border border-slate-400 rounded flex items-center justify-center text-[8px] font-bold text-center">LOGO</div>`
+                        : `<div class="w-full h-full border border-slate-400 rounded flex items-center justify-center text-[6px] font-bold text-center leading-none">LOGO</div>`
                       }
                     </div>
-                    <div class="flex-1 text-center leading-tight">
-                      <div class="font-display font-extrabold text-xs uppercase">${escapeHtml(s.nama_sekolah || "SEKOLAH")}</div>
-                      <div class="font-bold text-[11px] uppercase text-teal-800">KARTU PESERTA UJIAN</div>
-                      <div class="text-[10px] text-slate-600">${escapeHtml(state.filter.jenis_penilaian)} • Sem. ${escapeHtml(state.filter.semester)} (${escapeHtml(state.filter.tahun_pelajaran)})</div>
+                    <div class="flex-1 text-center leading-tight min-w-0">
+                      <div class="font-display font-extrabold uppercase truncate" style="${titleSchoolCss}">${escapeHtml(s.nama_sekolah || "SEKOLAH")}</div>
+                      <div class="font-bold uppercase text-teal-800" style="${titleCardCss}">KARTU PESERTA UJIAN</div>
+                      <div class="text-slate-600 truncate" style="${subPeriodeCss}">${escapeHtml(state.filter.jenis_penilaian)} • Sem. ${escapeHtml(state.filter.semester)} (${escapeHtml(state.filter.tahun_pelajaran)})</div>
                     </div>
                   </div>
 
-                  <div class="flex gap-3 items-start my-1">
-                    <div class="w-20 h-24 border border-slate-400 rounded-md overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
+                  <!-- Biodata & Foto -->
+                  <div class="flex items-center gap-2 my-auto py-0.5">
+                    <div class="border border-slate-400 rounded overflow-hidden bg-slate-50 flex items-center justify-center shrink-0" style="${fotoBoxCss}">
                       ${p.foto_siswa
                         ? `<img src="${p.foto_siswa}" alt="Foto" class="w-full h-full object-cover" />`
-                        : `<span class="text-[9px] text-slate-400 text-center px-1">FOTO<br/>3 x 4</span>`
+                        : `<span class="text-[7px] text-slate-400 text-center leading-tight">FOTO<br/>3×4</span>`
                       }
                     </div>
-                    <table class="text-[11px] w-full leading-snug">
-                      <tr><td class="text-slate-500 w-24">No. Peserta</td><td class="font-mono font-bold">: ${escapeHtml(p.no_peserta)}</td></tr>
-                      <tr><td class="text-slate-500">Nama Siswa</td><td class="font-bold uppercase">: ${escapeHtml(p.nama_siswa)}</td></tr>
-                      <tr><td class="text-slate-500">Kelas</td><td class="font-semibold">: ${escapeHtml(p.kelas)}</td></tr>
-                      <tr><td class="text-slate-500">Ruang Ujian</td><td class="font-semibold">: ${escapeHtml(ruang ? `${ruang.kode_ruang} (${ruang.nama_ruang})` : "-")}</td></tr>
-                      <tr><td class="text-slate-500">Nomor Kursi</td><td class="font-bold">: ${escapeHtml(p.no_kursi || "-")}</td></tr>
+                    <table class="w-full border-collapse" style="${tableFontCss}">
+                      <tr><td class="text-slate-500 align-top" style="${labelColCss}">No. Peserta</td><td class="font-mono font-bold align-top">: ${escapeHtml(p.no_peserta)}</td></tr>
+                      <tr><td class="text-slate-500 align-top">Nama</td><td class="font-bold uppercase align-top">: ${escapeHtml(p.nama_siswa)}</td></tr>
+                      <tr><td class="text-slate-500 align-top">Kelas</td><td class="font-semibold align-top">: ${escapeHtml(p.kelas)}</td></tr>
+                      <tr><td class="text-slate-500 align-top">Ruang</td><td class="font-semibold align-top">: ${escapeHtml(ruang ? `${ruang.kode_ruang} (${ruang.nama_ruang})` : "-")}</td></tr>
+                      <tr><td class="text-slate-500 align-top">No. Kursi</td><td class="font-bold align-top">: ${escapeHtml(p.no_kursi || "-")}</td></tr>
                     </table>
                   </div>
 
-                  <div class="mt-3 pt-2 border-t border-dashed border-slate-300 flex justify-between items-end text-[10px]">
-                    <div class="text-slate-500 italic">Harap dibawa setiap sesi ujian</div>
+                  <!-- Tanda Tangan Panitia -->
+                  <div class="pt-1 border-t border-dashed border-slate-300 flex justify-between items-end" style="${footerFontCss}">
+                    <div class="text-slate-500 italic">Wajib dibawa saat ujian</div>
                     <div class="text-right">
                       <div>${escapeHtml(s.kota || "Kota")}, Ketua Panitia</div>
-                      <div class="font-bold underline mt-5">${escapeHtml(s.ketua_panitia || ".........................")}</div>
+                      <div class="font-bold underline" style="${signSpaceCss}">${escapeHtml(s.ketua_panitia || ".........................")}</div>
                     </div>
                   </div>
                 </div>
@@ -3295,6 +3397,22 @@
       }
     }
 
+    function updateKartuLivePreview() {
+      const printArea = document.getElementById("print-area");
+      if (printArea && state.cetakDocType === "kartu") {
+        printArea.innerHTML = renderPrintDocumentBody();
+      }
+      const estBadge = document.getElementById("kartu-a4-estimate");
+      if (estBadge) {
+        const est = calculateA4Capacity(
+          state.kartuConfig.lebarMm,
+          state.kartuConfig.panjangMm,
+          state.kartuConfig.jarakMm
+        );
+        estBadge.textContent = `Estimasi: ${est.total} kartu / lembar A4 (${est.cols}×${est.rows})`;
+      }
+    }
+
     function bindAppEvents() {
       // Navigasi Menu
       document.querySelectorAll("[data-nav-menu]").forEach((btn) => {
@@ -3503,7 +3621,7 @@
         };
       });
 
-      // Pusat Cetak
+      // Pusat Cetak & Pengaturan Ukuran Kartu Peserta (Panjang & Lebar Kustom)
       document.querySelectorAll("[data-cetak-doc]").forEach((btn) => {
         btn.onclick = () => {
           state.cetakDocType = btn.getAttribute("data-cetak-doc");
@@ -3517,6 +3635,35 @@
       document.getElementById("cetak-filter-bap")?.addEventListener("change", (e) => {
         state.cetakFilterBapId = e.target.value;
         renderApp();
+      });
+      document.getElementById("kartu-lebar-mm")?.addEventListener("input", (e) => {
+        const val = Number(e.target.value);
+        if (val >= 45 && val <= 194) {
+          state.kartuConfig.lebarMm = val;
+          updateKartuLivePreview();
+        }
+      });
+      document.getElementById("kartu-panjang-mm")?.addEventListener("input", (e) => {
+        const val = Number(e.target.value);
+        if (val >= 35 && val <= 280) {
+          state.kartuConfig.panjangMm = val;
+          updateKartuLivePreview();
+        }
+      });
+      document.getElementById("kartu-jarak-mm")?.addEventListener("input", (e) => {
+        const val = Number(e.target.value);
+        if (!Number.isNaN(val) && val >= 0 && val <= 20) {
+          state.kartuConfig.jarakMm = val;
+          updateKartuLivePreview();
+        }
+      });
+      document.querySelectorAll("[data-kartu-preset-w]").forEach((btn) => {
+        btn.onclick = () => {
+          state.kartuConfig.lebarMm = Number(btn.getAttribute("data-kartu-preset-w"));
+          state.kartuConfig.panjangMm = Number(btn.getAttribute("data-kartu-preset-h"));
+          state.kartuConfig.jarakMm = Number(btn.getAttribute("data-kartu-preset-g"));
+          renderApp();
+        };
       });
       document.getElementById("btn-trigger-print")?.addEventListener("click", () => {
         window.print();
