@@ -751,7 +751,7 @@
           state.currentUser = {
             role: "admin",
             id: user.uid,
-            name: user.displayName || "Admin Panitia Utama",
+            name: user.displayName || "Administrator",
             emailOrUsername: user.email,
             nip: "Administrator"
           };
@@ -849,7 +849,7 @@
         state.currentUser = {
           role: "admin",
           id: cred.user.uid,
-          name: cred.user.displayName || "Admin Panitia Utama",
+          name: cred.user.displayName || "Administrator",
           emailOrUsername: cred.user.email,
           nip: "Administrator"
         };
@@ -1153,7 +1153,7 @@
     // =========================================================================
     function getAvailableMenus() {
       const menus = [
-        { id: "dashboard", label: "Dashboard Komando", shortLabel: "Beranda", icon: "layout-dashboard", group: "OPERASIONAL UJIAN" },
+        { id: "dashboard", label: "Dashboard", shortLabel: "Beranda", icon: "layout-dashboard", group: "OPERASIONAL UJIAN" },
         { id: "master", label: "Master & Profil", shortLabel: "Master", icon: "database", group: "OPERASIONAL UJIAN" },
         { id: "jadwal", label: "Jadwal & Pengawas", shortLabel: "Jadwal", icon: "calendar-clock", group: "OPERASIONAL UJIAN" },
         { id: "monitoring", label: "Monitoring Ruang", shortLabel: "Ruang", icon: "monitor-check", group: "PELAKSANAAN" },
